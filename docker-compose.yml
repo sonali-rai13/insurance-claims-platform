@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: claims-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: claims_user
+      POSTGRES_PASSWORD: claims_pass
+      POSTGRES_DB: claims_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - claims_pg_data:/var/lib/postgresql/data
+
+volumes:
+  claims_pg_data:

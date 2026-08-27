@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  CLAIMS_HANDLER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  claimsAsCustomer Claim[] @relation("CustomerClaims")
+  claimsAsHandler  Claim[] @relation("HandlerClaims")
+
+  documentsUploaded Document[]
+  auditActions      AuditLogEntry[]
+}
+
+enum ClaimType {
+  VEHICLE
+  HOME
+  LIABILITY
+}
+
+enum ClaimStatus {
+  DRAFT
+  SUBMITTED
+  DOCUMENT_REVIEW
+  UNDER_ASSESSMENT
+  ADDITIONAL_INFO_REQUIRED
+  APPROVED
+  REJECTED
+  PAYMENT_PENDING
+  SETTLED
+}
+
+model Claim {
+  id                String      @id @default(uuid())
+  claimNumber       String      @unique
+  customerId        String
+  customer          User        @relation("CustomerClaims", fields: [customerId], references: [id])
+  assignedHandlerId String?
+  assignedHandler   User?       @relation("HandlerClaims", fields: [assignedHandlerId], references: [id])
+
+  type              ClaimType
+  status            ClaimStatus @default(DRAFT)
+
+  policyNumber      String
+  incidentDate      DateTime
+  incidentLocation  String
+  description       String
+  estimatedDamage   Float?
+  otherPartyInvolved Boolean    @default(false)
+  hasPoliceReport   Boolean     @default(false)
+  hasWitnesses      Boolean     @default(false)
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  documents  Document[]
+  auditLogs  AuditLogEntry[]
+}
+
+enum DocumentType {
+  POLICE_REPORT
+  PHOTO
+  REPAIR_ESTIMATE
+  INVOICE
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  VALIDATED
+  ACCEPTED
+  REJECTED
+}
+
+model Document {
+  id             String         @id @default(uuid())
+  claimId        String
+  claim          Claim          @relation(fields: [claimId], references: [id])
+  uploadedById   String
+  uploadedBy     User           @relation(fields: [uploadedById], references: [id])
+
+  type           DocumentType
+  filename       String
+  storageUrl     String
+  status         DocumentStatus @default(UPLOADED)
+
+  uploadedAt     DateTime       @default(now())
+}
+
+model AuditLogEntry {
+  id          String   @id @default(uuid())
+  claimId     String
+  claim       Claim    @relation(fields: [claimId], references: [id])
+  actorUserId String
+  actor       User     @relation(fields: [actorUserId], references: [id])
+
+  action      String
+  fromValue   String?
+  toValue     String?
+
+  createdAt   DateTime @default(now())
+}
