@@ -3,19 +3,19 @@ import { ClaimType } from '@prisma/client';
 
 export class CreateClaimDto {
   @IsEnum(ClaimType)
-  type: ClaimType;
+  type!: ClaimType;
 
   @IsString()
-  policyNumber: string;
+  policyNumber!: string;
 
   @IsDateString()
-  incidentDate: string;
+  incidentDate!: string;
 
   @IsString()
-  incidentLocation: string;
+  incidentLocation!: string;
 
   @IsString()
-  description: string;
+  description!: string;
 
   @IsOptional()
   @IsNumber()
