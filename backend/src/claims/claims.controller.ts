@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { ClaimsService } from './claims.service';
 import { CreateClaimDto } from './dto/create-claim.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -20,5 +20,23 @@ export class ClaimsController {
   @Get()
   findAll() {
     return this.claimsService.findAll();
+  }
+
+  @Patch(':id/status')
+  transitionStatus(
+    @Param('id') id: string,
+    @Body('status') status: 'DRAFT' | 'SUBMITTED' | 'DOCUMENT_REVIEW' | 'UNDER_ASSESSMENT' | 'ADDITIONAL_INFO_REQUIRED' | 'APPROVED' | 'REJECTED' | 'PAYMENT_PENDING' | 'SETTLED',
+    @CurrentUser() user: { userId: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER' },
+  ) {
+    return this.claimsService.transitionStatus(id, status, user.userId, user.role);
+  }
+
+  @Patch(':id/assign')
+  @Roles('CLAIMS_HANDLER')
+  assignToHandler(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER' },
+  ) {
+    return this.claimsService.assignToHandler(id, user.userId);
   }
 }
