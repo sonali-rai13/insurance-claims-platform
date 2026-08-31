@@ -42,6 +42,30 @@ export class ClaimsService {
     });
   }
 
+  async findOne(claimId: string, userId: string, role: 'CUSTOMER' | 'CLAIMS_HANDLER') {
+    const claim = await this.prisma.claim.findUnique({
+      where: { id: claimId },
+      include: { documents: true, auditLogs: { orderBy: { createdAt: 'asc' } } },
+    });
+
+    if (!claim) {
+      throw new NotFoundException('Claim not found');
+    }
+
+    const isOwner = claim.customerId === userId;
+    const isAssignedOrUnassignedHandler =
+      role === 'CLAIMS_HANDLER' && (claim.assignedHandlerId === userId || claim.assignedHandlerId === null);
+
+    if (role === 'CUSTOMER' && !isOwner) {
+      throw new ForbiddenException('You can only view your own claims');
+    }
+    if (role === 'CLAIMS_HANDLER' && !isAssignedOrUnassignedHandler) {
+      throw new ForbiddenException('This claim is assigned to a different handler');
+    }
+
+    return claim;
+  }
+
   async transitionStatus(
     claimId: string,
     toStatus: ClaimStatus,

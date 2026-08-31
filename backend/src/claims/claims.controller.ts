@@ -22,6 +22,14 @@ export class ClaimsController {
     return this.claimsService.findAll(user.userId, user.role);
   }
 
+  @Get(':id')
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER' },
+  ) {
+    return this.claimsService.findOne(id, user.userId, user.role);
+  }
+
   @Patch(':id/status')
   transitionStatus(
     @Param('id') id: string,
