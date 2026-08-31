@@ -26,8 +26,20 @@ export class ClaimsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.claim.findMany();
+  async findAll(userId: string, role: 'CUSTOMER' | 'CLAIMS_HANDLER') {
+    if (role === 'CUSTOMER') {
+      return this.prisma.claim.findMany({
+        where: { customerId: userId },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+    // CLAIMS_HANDLER: see claims assigned to them, plus unassigned ones they could pick up
+    return this.prisma.claim.findMany({
+      where: {
+        OR: [{ assignedHandlerId: userId }, { assignedHandlerId: null }],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async transitionStatus(

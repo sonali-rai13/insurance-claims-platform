@@ -13,10 +13,22 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  login: (token: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function decodeToken(token: string): AuthUser | null {
+  try {
+    const decoded = jwtDecode<{ sub: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER'; exp: number }>(token);
+    const isExpired = decoded.exp * 1000 < Date.now();
+    if (isExpired) return null;
+    return { userId: decoded.sub, email: decoded.email, role: decoded.role };
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -26,23 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      try {
-        const decoded = jwtDecode<{ sub: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER'; exp: number }>(token);
-
-        const isExpired = decoded.exp * 1000 < Date.now();
-        if (isExpired) {
-          localStorage.removeItem('accessToken');
-          setUser(null);
-        } else {
-          setUser({ userId: decoded.sub, email: decoded.email, role: decoded.role });
-        }
-      } catch {
+      const decodedUser = decodeToken(token);
+      if (!decodedUser) {
         localStorage.removeItem('accessToken');
-        setUser(null);
       }
+      setUser(decodedUser);
     }
     setLoading(false);
   }, []);
+
+  function login(token: string) {
+    localStorage.setItem('accessToken', token);
+    setUser(decodeToken(token));
+  }
 
   function logout() {
     localStorage.removeItem('accessToken');
@@ -50,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   }
 
-  return <AuthContext.Provider value={{ user, loading, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -18,8 +18,8 @@ export class ClaimsController {
   }
 
   @Get()
-  findAll() {
-    return this.claimsService.findAll();
+  findAll(@CurrentUser() user: { userId: string; email: string; role: 'CUSTOMER' | 'CLAIMS_HANDLER' }) {
+    return this.claimsService.findAll(user.userId, user.role);
   }
 
   @Patch(':id/status')
